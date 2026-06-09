@@ -1,0 +1,13 @@
+version: "2"
+
+linters:
+  enable:
+    - exhaustive
+    - exhaustruct
+    - gosec
+    - nilnil
+    - nilerr
+    - contextcheck
+    - gochecknoinits
+    - godox
+    - misspell

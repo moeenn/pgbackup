@@ -1,0 +1,13 @@
+[Unit]
+Description=pgbackup
+After=network.target
+
+[Service]
+WorkingDirectory=/home/root/documents/docker
+ExecStart=/home/root/documents/docker/pgbackup
+Type=simple
+Restart=always
+
+[Install]
+WantedBy=default.target
+

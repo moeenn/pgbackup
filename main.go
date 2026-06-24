@@ -18,10 +18,10 @@ const (
 )
 
 type config struct {
-	PgUser         string
-	PgDatabase     string
-	ContainerName  string
-	RetentionWeeks int
+	pgUser         string
+	pgDatabase     string
+	containerName  string
+	retentionWeeks int
 }
 
 func readEnv(key string) (string, error) {
@@ -53,10 +53,10 @@ func newConfig() (*config, error) {
 	}
 
 	cfg := config{
-		PgUser:         user,
-		PgDatabase:     db,
-		ContainerName:  containerName,
-		RetentionWeeks: RETENTION_WEEKS,
+		pgUser:         user,
+		pgDatabase:     db,
+		containerName:  containerName,
+		retentionWeeks: RETENTION_WEEKS,
 	}
 
 	return &cfg, nil
@@ -115,11 +115,12 @@ func exportDatabase(c *config, filename string) error {
 	cmd := exec.Command("docker",
 		"container",
 		"exec",
-		c.ContainerName,
+		c.containerName,
 		"/usr/local/bin/pg_dump",
 		"-U",
-		c.PgUser,
-		c.PgDatabase)
+		c.pgUser,
+		c.pgDatabase,
+	)
 
 	cmd.Stdout = file
 	cmd.Stderr = logFile
@@ -137,7 +138,7 @@ func cleanOldBackups(backupDir string, retentionWeeks int) error {
 		return fmt.Errorf("failed to list backup dir content: %w", err)
 	}
 
-	twoWeeksAgo := time.Now().AddDate(0, 0, -14)
+	retentionCutoff := time.Now().AddDate(0, 0, retentionWeeks*-7)
 	for _, file := range files {
 		name := file.Name()
 		if file.IsDir() || !strings.HasSuffix(name, ".sql") {
@@ -149,7 +150,7 @@ func cleanOldBackups(backupDir string, retentionWeeks int) error {
 			continue
 		}
 
-		if fileInfo.ModTime().Before(twoWeeksAgo) {
+		if fileInfo.ModTime().Before(retentionCutoff) {
 			fullpath := path.Join(backupDir, fileInfo.Name())
 			if err := os.Remove(fullpath); err != nil {
 				return fmt.Errorf("failed to remove backup file (%s): %w", file.Name(), err)
@@ -181,7 +182,7 @@ func run() error {
 		}
 	}
 
-	if err := cleanOldBackups(backupDir, cfg.RetentionWeeks); err != nil {
+	if err := cleanOldBackups(backupDir, cfg.retentionWeeks); err != nil {
 		return fmt.Errorf("failed to clean-up old backups: %w", err)
 	}
 
